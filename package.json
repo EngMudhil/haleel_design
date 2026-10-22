@@ -1,0 +1,17 @@
+
+{
+  "name": "haleel_design",
+  "version": "1.0.0",
+  "description": "Custom design system and workspace for Haleel Technology",
+  "main": "index.js",
+  "scripts": {
+    "build:css": "tailwindcss -i ./haleel_design/public/css/tailwind.css -o ./haleel_design/public/css/tailwind.bundle.css",
+    "watch:css": "tailwindcss -i ./haleel_design/public/css/tailwind.css -o ./haleel_design/public/css/tailwind.bundle.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

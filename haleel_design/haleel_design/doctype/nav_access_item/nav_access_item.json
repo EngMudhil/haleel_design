@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-10-13 13:46:51.182724",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_ohni",
+  "nav_group",
+  "nav_item"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_ohni",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "nav_group",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Nav Group",
+   "options": "Nav Group",
+   "reqd": 1
+  },
+  {
+   "fieldname": "nav_item",
+   "fieldtype": "Link",
+   "label": "Nav Item",
+   "options": "Nav Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-13 15:20:44.426028",
+ "modified_by": "Administrator",
+ "module": "Haleel Design",
+ "name": "Nav Access Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

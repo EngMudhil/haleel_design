@@ -1,0 +1,460 @@
+
+:root {
+    --hd-sidebar-width: 258px;
+    --hd-sidebar-bg: #172337;
+    --hd-sidebar-border: #2a394e;
+    --hd-brand: #0f9f91;
+    --hd-text: #e7edf5;
+    --hd-muted: #96a6bb;
+    --hd-hover: #24344b;
+    --hd-active: #0f766e;
+    --hd-page-bg: #f6f8fb;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body.haleel-design-active {
+    background: var(--hd-page-bg);
+}
+
+body.haleel-design-active .desk-sidebar,
+body.haleel-design-active .body-sidebar-container {
+    display: none !important;
+}
+
+/* Preserve the native Frappe navbar and command search. */
+body.haleel-design-active .main-section {
+    box-sizing: border-box;
+    width: calc(100% - var(--hd-sidebar-width));
+    min-height: 100vh;
+    margin-left: var(--hd-sidebar-width) !important;
+    padding-top: 0 !important;
+}
+
+body.haleel-design-active .page-container,
+body.haleel-design-active .page-body,
+body.haleel-design-active .layout-main-section-wrapper,
+body.haleel-design-active .layout-main-section {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+}
+
+body.haleel-design-active
+.layout-side-section:has(.desk-sidebar) {
+    display: none !important;
+}
+
+/* Sidebar */
+#haleel-design-shell,
+#haleel-design-shell * {
+    box-sizing: border-box;
+}
+
+#haleel-design-shell .hd-sidebar {
+    position: fixed;
+    z-index: 1045;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    width: var(--hd-sidebar-width);
+    overflow-x: hidden;
+    overflow-y: auto;
+    color: var(--hd-text);
+    background: var(--hd-sidebar-bg);
+    border-right: 1px solid var(--hd-sidebar-border);
+    font-family: inherit;
+    scrollbar-width: thin;
+    scrollbar-color: #40516a var(--hd-sidebar-bg);
+}
+
+#haleel-design-shell .hd-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 76px;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--hd-sidebar-border);
+}
+
+#haleel-design-shell .hd-brand-mark {
+    display: grid;
+    flex: 0 0 39px;
+    width: 39px;
+    height: 39px;
+    place-items: center;
+    border-radius: 11px;
+    color: #fff;
+    background: var(--hd-brand);
+    font-size: 20px;
+    font-weight: 750;
+}
+
+#haleel-design-shell .hd-brand-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+#haleel-design-shell .hd-brand-copy strong {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+#haleel-design-shell .hd-brand-copy small {
+    color: var(--hd-muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
+#haleel-design-shell .hd-sidebar-caption {
+    padding: 23px 20px 10px;
+    color: #8799b0;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 1.5px;
+}
+
+#haleel-design-shell .hd-navigation {
+    flex: 1;
+    padding: 0 11px 15px;
+}
+
+#haleel-design-shell .hd-nav-group {
+    margin-bottom: 8px;
+}
+
+#haleel-design-shell .hd-nav-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 7px;
+    color: #c4d0df;
+    background: transparent;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+#haleel-design-shell .hd-nav-group-title:hover {
+    color: #fff;
+    background: var(--hd-hover);
+}
+
+#haleel-design-shell .hd-chevron {
+    color: #92a3b9;
+    font-size: 15px;
+    transition: transform 0.15s ease;
+}
+
+#haleel-design-shell
+.hd-nav-group-title[aria-expanded="false"]
+.hd-chevron {
+    transform: rotate(-90deg);
+}
+
+#haleel-design-shell .hd-nav-group-items {
+    padding: 3px 0 5px;
+}
+
+#haleel-design-shell .hd-nav-group-items[hidden],
+#haleel-design-shell .hd-profile-menu[hidden] {
+    display: none !important;
+}
+
+#haleel-design-shell .hd-nav-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin: 2px 0;
+    padding: 10px 12px 10px 17px;
+    border: 0;
+    border-radius: 7px;
+    color: #b7c5d7;
+    background: transparent;
+    text-align: left;
+    font-size: 12px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+#haleel-design-shell .hd-nav-item:hover {
+    color: #fff;
+    background: var(--hd-hover);
+}
+
+#haleel-design-shell .hd-nav-item.is-active {
+    color: #fff;
+    background: var(--hd-active);
+    font-weight: 650;
+}
+
+#haleel-design-shell .hd-nav-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#haleel-design-shell .hd-empty,
+#haleel-design-shell .hd-loading {
+    padding: 13px 10px;
+    color: var(--hd-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+#haleel-design-shell .hd-empty small {
+    display: block;
+    margin-top: 5px;
+    color: #7f91a8;
+    font-size: 11px;
+}
+
+/* Sidebar footer and custom profile menu */
+#haleel-design-shell .hd-sidebar-bottom {
+    margin-top: auto;
+    border-top: 1px solid var(--hd-sidebar-border);
+}
+
+#haleel-design-shell .hd-sidebar-footer {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 13px 20px 10px;
+    color: var(--hd-muted);
+    font-size: 11px;
+}
+
+#haleel-design-shell .hd-status-dot {
+    flex: 0 0 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #20c997;
+}
+
+#haleel-design-shell .hd-profile {
+    position: relative;
+    padding: 6px 10px 12px;
+}
+
+#haleel-design-shell .hd-profile-trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    color: #fff;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+#haleel-design-shell .hd-profile-trigger:hover,
+#haleel-design-shell
+.hd-profile-trigger[aria-expanded="true"] {
+    border-color: #34445b;
+    background: #223148;
+}
+
+#haleel-design-shell .hd-avatar {
+    display: grid;
+    flex: 0 0 35px;
+    width: 35px;
+    height: 35px;
+    overflow: hidden;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: #31506b;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+#haleel-design-shell .hd-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#haleel-design-shell .hd-avatar-initials {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    place-items: center;
+}
+
+#haleel-design-shell .hd-profile-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+#haleel-design-shell .hd-profile-copy strong {
+    overflow: hidden;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#haleel-design-shell .hd-profile-copy small {
+    overflow: hidden;
+    color: #9eafc3;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#haleel-design-shell .hd-profile-chevron {
+    color: #9eafc3;
+    font-size: 17px;
+}
+
+#haleel-design-shell .hd-profile-menu {
+    position: absolute;
+    z-index: 1055;
+    right: 10px;
+    bottom: calc(100% - 4px);
+    left: 10px;
+    padding: 7px;
+    border: 1px solid #34445b;
+    border-radius: 10px;
+    background: #202f44;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+#haleel-design-shell .hd-profile-menu-heading {
+    padding: 9px 10px;
+    color: #91a4bc;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#haleel-design-shell .hd-profile-menu button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 0;
+    border-radius: 6px;
+    color: #e5edf7;
+    background: transparent;
+    text-align: left;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#haleel-design-shell .hd-profile-menu button:hover {
+    color: #fff;
+    background: #304158;
+}
+
+#haleel-design-shell .hd-profile-divider {
+    height: 1px;
+    margin: 5px 4px;
+    background: #39495e;
+}
+
+#haleel-design-shell
+.hd-profile-menu button.hd-logout-action {
+    color: #ffb4b4;
+}
+
+#haleel-design-shell
+.hd-profile-menu button.hd-logout-action:hover {
+    background: #482f3a;
+}
+
+/* Hide native profile and notification controls, not the navbar. */
+body.haleel-design-active .navbar .dropdown-help,
+body.haleel-design-active .navbar .nav-item.dropdown-notifications,
+body.haleel-design-active .navbar .nav-item.dropdown-user,
+body.haleel-design-active .navbar .avatar,
+body.haleel-design-active .navbar .user-profile {
+    display: none !important;
+}
+
+#haleel-design-shell .hd-mobile-toggle,
+#haleel-design-shell .hd-mobile-backdrop {
+    display: none;
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+    body.haleel-design-active .main-section {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+
+    #haleel-design-shell .hd-sidebar {
+        width: 265px;
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+    }
+
+    #haleel-design-shell.hd-sidebar-open .hd-sidebar {
+        transform: translateX(0);
+    }
+
+    #haleel-design-shell .hd-mobile-toggle {
+        position: fixed;
+        z-index: 1047;
+        top: 12px;
+        left: 12px;
+        display: block;
+        width: 40px;
+        height: 40px;
+        border: 1px solid #d9e0e8;
+        border-radius: 8px;
+        color: #263449;
+        background: #fff;
+        font-size: 21px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(20, 35, 55, 0.12);
+    }
+
+    #haleel-design-shell .hd-mobile-backdrop {
+        position: fixed;
+        z-index: 1043;
+        inset: 0;
+        display: block;
+        border: 0;
+        background: rgba(8, 18, 32, 0.42);
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    #haleel-design-shell.hd-sidebar-open
+    .hd-mobile-backdrop {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    #haleel-design-shell.hd-sidebar-open
+    .hd-mobile-toggle {
+        left: 277px;
+    }
+}
