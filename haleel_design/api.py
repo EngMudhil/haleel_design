@@ -3,11 +3,11 @@ import frappe
 from frappe import _
 
 
-def _enabled(value):
+def _is_visible(value):
     return value not in (0, "0", False, None)
 
 
-def _make_route(item_type, destination):
+def _route_for(item_type, destination):
     item_type = str(item_type or "").strip().lower()
     destination = str(destination or "").strip()
 
@@ -15,18 +15,12 @@ def _make_route(item_type, destination):
         return None
 
     if item_type == "doctype":
-        if not frappe.db.exists("DocType", destination):
-            return None
         return ["List", destination]
 
     if item_type == "report":
-        if not frappe.db.exists("Report", destination):
-            return None
         return ["query-report", destination]
 
     if item_type == "page":
-        if not frappe.db.exists("Page", destination):
-            return None
         return [destination]
 
     return None
@@ -34,76 +28,97 @@ def _make_route(item_type, destination):
 
 @frappe.whitelist()
 def get_navigation():
-    """Return active navigation groups assigned to the current user."""
     user = frappe.session.user
 
     if user == "Guest":
-        frappe.throw(_("Please log in first."), frappe.PermissionError)
+        frappe.throw(
+            _("Please log in to access navigation."),
+            frappe.PermissionError,
+        )
 
-    records = frappe.get_all(
+    access_records = frappe.get_all(
         "Nav Access",
         filters={"user": user},
         fields=["name"],
         limit_page_length=100,
     )
 
-    # Empty nav_item means all visible items in the assigned group.
-    group_access = {}
+    groups_allowed = set()
+    items_allowed = {}
 
-    for record in records:
+    for record in access_records:
         access = frappe.get_doc("Nav Access", record.name)
 
-        if not _enabled(access.get("is_active", 1)):
+        if not _is_visible(access.get("is_active", 1)):
             continue
 
-        for selected in access.get("workspaces") or []:
-            group_name = str(selected.get("nav_group") or "").strip()
-            item_name = str(selected.get("nav_item") or "").strip()
+        for row in access.get("workspaces") or []:
+            group_name = row.get("nav_group")
+            item_name = row.get("nav_item")
 
-            if not group_name:
-                continue
+            if group_name:
+                groups_allowed.add(group_name)
 
-            group_access.setdefault(group_name, set())
-
-            if item_name:
-                group_access[group_name].add(item_name)
+                if item_name:
+                    items_allowed.setdefault(
+                        group_name, set()
+                    ).add(item_name)
 
     result = []
 
-    for group_name, selected_names in group_access.items():
+    for group_name in sorted(groups_allowed):
         if not frappe.db.exists("Nav Group", group_name):
             continue
 
         group = frappe.get_doc("Nav Group", group_name)
 
-        if not _enabled(group.get("is_active", 1)):
+        if not _is_visible(group.get("is_active", 1)):
             continue
 
         items = []
+        selected_items = items_allowed.get(group_name, set())
 
         for row in group.get("navigation_items") or []:
-            if not _enabled(row.get("is_visible", 1)):
+            if not _is_visible(row.get("is_visible", 1)):
                 continue
 
-            row_name = str(row.get("name") or "").strip()
-            label = str(row.get("name1") or "").strip()
+            item_type = row.get("item_type")
+            destination = row.get("destination")
+            linked_item = row.get("nav_item")
 
-            if selected_names and (
-                row_name not in selected_names
-                and label not in selected_names
+            if linked_item and (
+                not item_type or not destination
             ):
-                continue
+                if frappe.db.exists("Nav Item", linked_item):
+                    linked = frappe.get_doc(
+                        "Nav Item", linked_item
+                    )
 
-            item_type = str(row.get("item_type") or "").strip().lower()
-            destination = str(row.get("destination") or "").strip()
-            route = _make_route(item_type, destination)
+                    item_type = (
+                        item_type or linked.get("item_type")
+                    )
+                    destination = (
+                        destination or linked.get("destination")
+                    )
+
+            if selected_items and linked_item:
+                if linked_item not in selected_items:
+                    continue
+
+            route = _route_for(item_type, destination)
 
             if not route:
                 continue
 
+            label = (
+                row.get("label")
+                or row.get("name1")
+                or row.get("item_label")
+                or destination
+            )
+
             items.append({
-                "name": row_name or label,
-                "label": label or destination,
+                "label": label,
                 "type": item_type,
                 "destination": destination,
                 "route": route,
@@ -113,7 +128,9 @@ def get_navigation():
         if items:
             result.append({
                 "name": group.name,
-                "title": group.get("group_title") or group.name,
+                "title": (
+                    group.get("group_title") or group.name
+                ),
                 "icon": group.get("group_icon") or "",
                 "items": items,
             })
@@ -123,11 +140,13 @@ def get_navigation():
 
 @frappe.whitelist()
 def get_current_user_profile():
-    """Return the current user's basic profile."""
     user = frappe.session.user
 
     if user == "Guest":
-        frappe.throw(_("Please log in first."), frappe.PermissionError)
+        frappe.throw(
+            _("Please log in first."),
+            frappe.PermissionError,
+        )
 
     doc = frappe.get_doc("User", user)
 
