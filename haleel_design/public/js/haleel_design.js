@@ -2,338 +2,521 @@
 (() => {
     "use strict";
 
-    if (window.__haleelDesignInitialized) return;
-    window.__haleelDesignInitialized = true;
+    // Prevent the script from initializing twice.
+    if (window.__haleelDesignV3Initialized) return;
+    window.__haleelDesignV3Initialized = true;
 
-    const SHELL_ID = "haleel-design-shell";
-    const NAV_API = "haleel_design.api.get_navigation";
-    const PROFILE_API =
-        "haleel_design.api.get_current_user_profile";
+    const ROOT_ID = "hd-horizontal-nav";
+    const BODY_CLASS = "hd-horizontal-nav-active";
 
-    let navigation = [];
+    let groups = [];
     let profile = null;
-    let routeListenerAdded = false;
-    let observer = null;
-    let redirectingFromHome = false;
 
-    const escapeHTML = (value) =>
-        String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    let navRequestStarted = false;
+    let profileRequestStarted = false;
+    let routeListenerAttached = false;
+    let rootObserver = null;
+    let startupObserver = null;
+    let defaultRouteHandled = false;
+    let redirectInProgress = false;
+
+    /* =====================================================
+       UTILITIES
+       ===================================================== */
+
+    function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (character) => ({
             "&": "&amp;",
             "<": "&lt;",
             ">": "&gt;",
             '"': "&quot;",
-            "'": "&#39;",
-        })[char]);
+            "'": "&#39;"
+        })[character]);
+    }
 
-    const getRoute = () =>
-        frappe.get_route ? (frappe.get_route() || []) : [];
+    function getCurrentRoute() {
+        if (
+            typeof frappe === "undefined" ||
+            typeof frappe.get_route !== "function"
+        ) {
+            return [];
+        }
 
-    const routeKey = (route) =>
-        (route || []).map(String).join("/");
+        return (frappe.get_route() || []).map(String);
+    }
 
-    function normalizeItem(item) {
-        const destination =
-            item.destination || item.link_to || "";
+    function isDeskLanding(route = getCurrentRoute()) {
+        const first = String(route[0] || "").trim().toLowerCase();
+
+        return (
+            !first ||
+            ["desk", "workspace", "workspaces"].includes(first)
+        );
+    }
+
+    function normalizeRoute(item) {
+        if (Array.isArray(item.route) && item.route.length) {
+            return item.route.map(String);
+        }
 
         const type = String(
             item.type || item.item_type || ""
-        ).toLowerCase();
+        ).trim().toLowerCase();
 
-        let route = Array.isArray(item.route)
-            ? item.route
-            : null;
+        const destination = String(
+            item.destination || ""
+        ).trim();
 
-        if (!route) {
-            if (!destination) return null;
+        if (!destination) return null;
 
-            if (type === "doctype") {
-                route = ["List", destination];
-            } else if (type === "report") {
-                route = ["query-report", destination];
-            } else if (type === "page") {
-                route = [destination];
-            } else {
-                return null;
-            }
+        if (type === "doctype") {
+            return ["List", destination];
         }
 
-        if (!route.length) return null;
+        if (type === "report") {
+            return ["query-report", destination];
+        }
 
-        return {
-            label:
-                item.label ||
-                item.name1 ||
-                destination ||
-                item.name ||
-                "Untitled",
-            route,
-        };
+        if (type === "page") {
+            return [destination];
+        }
+
+        return null;
     }
 
     function normalizeGroups(data) {
         if (!Array.isArray(data)) return [];
 
-        return data.map((group) => ({
-            title:
-                group.title ||
-                group.group_title ||
-                group.name ||
-                "Navigation",
-            items: (
-                group.items ||
-                group.navigation_items ||
-                []
-            ).map(normalizeItem).filter(Boolean),
-        })).filter((group) => group.items.length);
+        return data.map((group) => {
+            const items = (Array.isArray(group.items) ? group.items : [])
+                .filter((item) => {
+                    return (
+                        item &&
+                        item.is_visible !== false &&
+                        item.is_visible !== 0 &&
+                        item.is_visible !== "0"
+                    );
+                })
+                .map((item) => ({
+                    name: String(item.name || ""),
+                    label: String(
+                        item.label ||
+                        item.name1 ||
+                        item.destination ||
+                        item.name ||
+                        "Untitled"
+                    ),
+                    type: String(
+                        item.type || item.item_type || ""
+                    ).toLowerCase(),
+                    destination: String(item.destination || ""),
+                    route: normalizeRoute(item)
+                }))
+                .filter((item) => {
+                    return (
+                        Array.isArray(item.route) &&
+                        item.route.length > 0 &&
+                        item.label
+                    );
+                });
+
+            return {
+                name: String(group.name || ""),
+                title: String(
+                    group.title ||
+                    group.group_title ||
+                    group.name ||
+                    "Navigation"
+                ),
+                icon: String(group.icon || group.group_icon || ""),
+                items
+            };
+        }).filter((group) => group.items.length > 0);
     }
 
-    function routeMatches(itemRoute, currentRoute) {
-        if (routeKey(itemRoute) === routeKey(currentRoute)) {
-            return true;
+    function getFirstNavigationItem() {
+        for (const group of groups) {
+            if (group.items && group.items.length) {
+                return group.items[0];
+            }
         }
 
-        return (
-            itemRoute[0] === "List" &&
-            itemRoute[1] &&
-            currentRoute[0] === itemRoute[1]
-        );
+        return null;
     }
 
+    /* =====================================================
+       DROPDOWN MANAGEMENT
+       ===================================================== */
+
+    function setMenuOpen(dropdown, open) {
+        if (!dropdown) return;
+
+        const trigger = dropdown.querySelector(
+            ":scope > .hd-dropdown-trigger, " +
+            ":scope > .hd-profile-trigger"
+        );
+
+        const menu = dropdown.querySelector(
+            ":scope > .hd-dropdown-menu"
+        );
+
+        dropdown.classList.toggle("is-open", Boolean(open));
+
+        if (trigger) {
+            trigger.setAttribute(
+                "aria-expanded",
+                String(Boolean(open))
+            );
+        }
+
+        if (menu) {
+            menu.hidden = !open;
+        }
+    }
+
+    function closeMenus(except = null) {
+        const root = document.getElementById(ROOT_ID);
+        if (!root) return;
+
+        root.querySelectorAll(".hd-dropdown").forEach((dropdown) => {
+            if (dropdown !== except) {
+                setMenuOpen(dropdown, false);
+            }
+        });
+
+        if (!except) {
+            root.classList.remove("hd-mobile-open");
+
+            const mobileButton = root.querySelector(
+                ".hd-mobile-toggle"
+            );
+
+            if (mobileButton) {
+                mobileButton.setAttribute("aria-expanded", "false");
+            }
+        }
+    }
+
+    /* =====================================================
+       NAVIGATION RENDERING
+       ===================================================== */
+
     function renderNavigation() {
-        const shell = document.getElementById(SHELL_ID);
-        const nav = shell?.querySelector(".hd-navigation");
+        const container = document.querySelector(
+            `#${ROOT_ID} .hd-nav-links`
+        );
 
-        if (!nav) return;
+        if (!container) return;
 
-        if (!navigation.length) {
-            nav.innerHTML = `
-                <div class="hd-empty">
-                    No navigation items are configured.
-                    <small>Check your Nav Access settings.</small>
-                </div>`;
+        if (!groups.length) {
+            container.innerHTML =
+                '<span class="hd-empty">No navigation items configured.</span>';
             return;
         }
 
-        const currentRoute = getRoute();
+        const currentRoute = getCurrentRoute();
 
-        nav.innerHTML = navigation.map((group, index) => {
-            const groupId = `hd-group-${index}`;
-
-            const items = group.items.map((item) => {
-                const active = routeMatches(
-                    item.route, currentRoute
-                );
-
-                return `
-                    <button type="button"
-                        class="hd-nav-item ${active ? "is-active" : ""}"
-                        data-route="${escapeHTML(JSON.stringify(item.route))}"
-                        title="${escapeHTML(item.label)}">
-                        <span class="hd-nav-item-label">
-                            ${escapeHTML(item.label)}
-                        </span>
-                    </button>`;
-            }).join("");
+        container.innerHTML = groups.map((group, index) => {
+            const groupIsCurrent = group.items.some((item) => {
+                return JSON.stringify(item.route) ===
+                    JSON.stringify(currentRoute);
+            });
 
             return `
-                <section class="hd-nav-group">
-                    <button type="button"
-                        class="hd-nav-group-title"
-                        aria-expanded="true"
-                        data-group="${groupId}">
-                        <span>${escapeHTML(group.title)}</span>
-                        <span class="hd-chevron">⌄</span>
+                <div
+                    class="hd-dropdown${groupIsCurrent ? " is-current" : ""}"
+                    data-hd-group="${index}"
+                >
+                    <button
+                        type="button"
+                        class="hd-dropdown-trigger"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                    >
+                        ${
+                            group.icon
+                                ? `<span class="hd-nav-group-icon">${escapeHTML(group.icon)}</span>`
+                                : ""
+                        }
+                        <span class="hd-group-label">
+                            ${escapeHTML(group.title)}
+                        </span>
+                        <span
+                            class="hd-dropdown-chevron"
+                            aria-hidden="true"
+                        >⌄</span>
                     </button>
-                    <div class="hd-nav-group-items"
-                        id="${groupId}">
-                        ${items}
+
+                    <div
+                        class="hd-dropdown-menu"
+                        role="menu"
+                        hidden
+                    >
+                        ${group.items.map((item) => `
+                            <button
+                                type="button"
+                                class="hd-nav-item"
+                                role="menuitem"
+                                data-hd-route="${escapeHTML(JSON.stringify(item.route))}"
+                            >
+                                ${escapeHTML(item.label)}
+                            </button>
+                        `).join("")}
                     </div>
-                </section>`;
+                </div>
+            `;
         }).join("");
+
+        container.querySelectorAll(".hd-dropdown").forEach((dropdown) => {
+            setMenuOpen(dropdown, false);
+        });
     }
 
-    function initials(name) {
-        return String(name || "User")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0])
-            .join("")
-            .toUpperCase() || "U";
-    }
+    /* =====================================================
+       PROFILE RENDERING
+       ===================================================== */
 
     function renderProfile() {
-        const area = document.querySelector(
-            `#${SHELL_ID} .hd-profile`
-        );
+        const root = document.getElementById(ROOT_ID);
+        if (!root) return;
 
-        if (!area) return;
-
-        const fullName =
+        const name =
             profile?.full_name ||
+            frappe.session?.user_fullname ||
             frappe.session?.user ||
             "User";
 
-        const email =
-            profile?.email ||
-            frappe.session?.user ||
-            "";
+        const image = profile?.image || "";
 
-        const avatar = profile?.image
-            ? `<img src="${escapeHTML(profile.image)}"
-                alt="" class="hd-avatar-image">`
-            : `<span class="hd-avatar-initials">
-                ${escapeHTML(initials(fullName))}
-               </span>`;
+        const initials = name
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part[0] || "")
+            .join("")
+            .toUpperCase();
 
-        area.innerHTML = `
-            <button type="button"
-                class="hd-profile-trigger"
-                aria-expanded="false">
+        const avatar = image
+            ? `<img src="${escapeHTML(image)}" alt="">`
+            : escapeHTML(initials || "U");
+
+        const trigger = root.querySelector(".hd-profile-trigger");
+
+        if (trigger) {
+            trigger.innerHTML = `
                 <span class="hd-avatar">${avatar}</span>
-                <span class="hd-profile-copy">
-                    <strong>${escapeHTML(fullName)}</strong>
-                    <small>${escapeHTML(email)}</small>
-                </span>
-                <span class="hd-profile-chevron">⌃</span>
-            </button>
-
-            <div class="hd-profile-menu" hidden>
-                <div class="hd-profile-menu-heading">
-                    My Account
-                </div>
-                <button type="button"
-                    data-profile-action="settings">
-                    My Settings
-                </button>
-                <button type="button"
-                    data-profile-action="password">
-                    Change Password
-                </button>
-                <button type="button"
-                    data-profile-action="reload">
-                    Reload
-                </button>
-                <div class="hd-profile-divider"></div>
-                <button type="button"
-                    class="hd-logout-action"
-                    data-profile-action="logout">
-                    Log Out
-                </button>
-            </div>`;
-    }
-
-    function installShell() {
-        let shell = document.getElementById(SHELL_ID);
-        if (shell) return shell;
-
-        if (
-            !document.querySelector(".main-section") &&
-            !document.querySelector("#page-container")
-        ) {
-            return null;
+                <span class="hd-profile-name">${escapeHTML(name)}</span>
+                <span
+                    class="hd-dropdown-chevron"
+                    aria-hidden="true"
+                >⌄</span>
+            `;
         }
 
-        shell = document.createElement("div");
-        shell.id = SHELL_ID;
+        const email = root.querySelector(".hd-profile-email");
 
-        shell.innerHTML = `
-            <aside class="hd-sidebar"
-                aria-label="Haleel navigation">
+        if (email) {
+            email.textContent =
+                profile?.email ||
+                frappe.session?.user ||
+                "";
+        }
+    }
 
-                <div class="hd-brand">
-                    <div class="hd-brand-mark">H</div>
-                    <div class="hd-brand-copy">
-                        <strong>Haleel</strong>
-                        <small>WORKSPACE</small>
-                    </div>
-                </div>
+    /* =====================================================
+       DEFAULT ROUTE AFTER LOGIN
+       ===================================================== */
 
-                <div class="hd-sidebar-caption">
-                    NAVIGATION
-                </div>
+    function navigateToDefaultIfNeeded() {
+        if (redirectInProgress || defaultRouteHandled) return;
+        if (!groups.length) return;
 
-                <nav class="hd-navigation"
-                    aria-label="Main navigation">
-                    <div class="hd-loading">
-                        Loading navigation…
-                    </div>
+        // Never redirect a user away from an actual page they opened.
+        if (!isDeskLanding()) {
+            defaultRouteHandled = true;
+            return;
+        }
+
+        const firstItem = getFirstNavigationItem();
+
+        if (!firstItem || !firstItem.route?.length) {
+            // No valid configured destination: leave the Desk alone.
+            return;
+        }
+
+        // Set these before set_route to prevent routing loops.
+        defaultRouteHandled = true;
+        redirectInProgress = true;
+
+        try {
+            frappe.set_route(...firstItem.route);
+        } catch (error) {
+            defaultRouteHandled = false;
+
+            console.error(
+                "[Haleel Design] Default navigation failed",
+                error
+            );
+        } finally {
+            window.setTimeout(() => {
+                redirectInProgress = false;
+            }, 800);
+        }
+    }
+
+    /* =====================================================
+       CREATE HALEEL HEADER
+       ===================================================== */
+
+    function createNavigation() {
+        let root = document.getElementById(ROOT_ID);
+
+        if (root) {
+            document.body.classList.add(BODY_CLASS);
+            return root;
+        }
+
+        const mount = document.querySelector(".main-section");
+
+        if (!mount) return null;
+
+        root = document.createElement("header");
+        root.id = ROOT_ID;
+
+        root.innerHTML = `
+            <div class="hd-nav-main">
+                <button
+                    type="button"
+                    class="hd-mobile-toggle"
+                    aria-label="Toggle navigation"
+                    aria-expanded="false"
+                >☰</button>
+
+                <a
+                    class="hd-brand"
+                    href="/app"
+                    aria-label="Haleel"
+                >
+                    <span class="hd-brand-mark">H</span>
+                    <span class="hd-brand-name">Haleel</span>
+                </a>
+
+                <nav
+                    class="hd-nav-links"
+                    aria-label="Haleel navigation"
+                >
+                    <span class="hd-empty">Loading navigation…</span>
                 </nav>
 
-                <div class="hd-sidebar-bottom">
-                    <div class="hd-sidebar-footer">
-                        <span class="hd-status-dot"></span>
-                        <span>Haleel Design</span>
+                <div class="hd-nav-actions">
+                    <div class="hd-dropdown hd-profile-dropdown">
+                        <button
+                            type="button"
+                            class="hd-profile-trigger"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                        >
+                            <span class="hd-avatar">U</span>
+                            <span class="hd-profile-name">User</span>
+                            <span
+                                class="hd-dropdown-chevron"
+                                aria-hidden="true"
+                            >⌄</span>
+                        </button>
+
+                        <div
+                            class="hd-dropdown-menu hd-profile-menu"
+                            role="menu"
+                            hidden
+                        >
+                            <div class="hd-profile-email">
+                                Loading profile…
+                            </div>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="settings"
+                            >My Settings</button>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="password"
+                            >Change Password</button>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="reload"
+                            >Reload Desk</button>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="logout"
+                            >Log out</button>
+                        </div>
                     </div>
-                    <div class="hd-profile"></div>
                 </div>
-            </aside>
+            </div>
+        `;
 
-            <button type="button"
-                class="hd-mobile-toggle"
-                aria-label="Open navigation"
-                aria-expanded="false">☰</button>
+        mount.insertBefore(root, mount.firstChild);
+        document.body.classList.add(BODY_CLASS);
 
-            <button type="button"
-                class="hd-mobile-backdrop"
-                aria-label="Close navigation"></button>`;
+        /* One delegated click listener for all menu items. */
+        root.addEventListener("click", (event) => {
+            const target = event.target instanceof Element
+                ? event.target
+                : null;
 
-        document.body.appendChild(shell);
-        document.body.classList.add("haleel-design-active");
+            if (!target) return;
 
-        shell.querySelector(".hd-mobile-toggle")
-            .addEventListener("click", () => {
-                const open =
-                    shell.classList.toggle("hd-sidebar-open");
+            /* Mobile menu */
+            const mobileButton = target.closest(".hd-mobile-toggle");
 
-                shell.querySelector(".hd-mobile-toggle")
-                    .setAttribute("aria-expanded", String(open));
-            });
+            if (mobileButton) {
+                const open = root.classList.toggle("hd-mobile-open");
 
-        shell.querySelector(".hd-mobile-backdrop")
-            .addEventListener("click", () => {
-                closeMobileSidebar(shell);
-            });
+                mobileButton.setAttribute(
+                    "aria-expanded",
+                    String(open)
+                );
 
-        shell.querySelector(".hd-navigation")
-            .addEventListener("click", (event) => {
-                const groupButton =
-                    event.target.closest("[data-group]");
+                return;
+            }
 
-                if (groupButton) {
-                    const targetId = groupButton.dataset.group;
-                    const target = Array.from(
-                        shell.querySelectorAll(".hd-nav-group-items")
-                    ).find((element) => element.id === targetId);
+            /* Dropdown triggers */
+            const trigger = target.closest(
+                ".hd-dropdown-trigger, .hd-profile-trigger"
+            );
 
-                    if (target) {
-                        const expanded =
-                            groupButton.getAttribute(
-                                "aria-expanded"
-                            ) === "true";
+            if (trigger) {
+                const dropdown = trigger.closest(".hd-dropdown");
+                if (!dropdown) return;
 
-                        groupButton.setAttribute(
-                            "aria-expanded",
-                            String(!expanded)
-                        );
+                const wasOpen = dropdown.classList.contains("is-open");
 
-                        target.hidden = expanded;
-                    }
-                    return;
-                }
+                closeMenus(dropdown);
+                setMenuOpen(dropdown, !wasOpen);
 
-                const button =
-                    event.target.closest("[data-route]");
+                return;
+            }
 
-                if (!button) return;
+            /* Navigation destinations */
+            const routeButton = target.closest("[data-hd-route]");
 
+            if (routeButton) {
                 try {
-                    const route = JSON.parse(button.dataset.route);
+                    const route = JSON.parse(
+                        routeButton.dataset.hdRoute || "null"
+                    );
 
                     if (Array.isArray(route) && route.length) {
+                        defaultRouteHandled = true;
+                        closeMenus();
                         frappe.set_route(...route);
-                        closeMobileSidebar(shell);
                     }
                 } catch (error) {
                     console.error(
@@ -341,260 +524,145 @@
                         error
                     );
                 }
-            });
 
-        shell.querySelector(".hd-profile")
-            .addEventListener("click", handleProfileClick);
+                return;
+            }
 
-        document.addEventListener("click", handleOutsideClick);
+            /* Profile actions */
+            const actionButton = target.closest("[data-hd-action]");
+            const action = actionButton?.dataset.hdAction;
 
-        return shell;
-    }
+            if (!action) return;
 
-    function closeMobileSidebar(shell) {
-        shell.classList.remove("hd-sidebar-open");
+            closeMenus();
 
-        const toggle =
-            shell.querySelector(".hd-mobile-toggle");
-
-        if (toggle) {
-            toggle.setAttribute("aria-expanded", "false");
-        }
-    }
-
-    function handleOutsideClick(event) {
-        const shell = document.getElementById(SHELL_ID);
-
-        if (!shell || shell.contains(event.target)) return;
-
-        const menu = shell.querySelector(".hd-profile-menu");
-        const trigger = shell.querySelector(".hd-profile-trigger");
-
-        if (menu) menu.hidden = true;
-
-        if (trigger) {
-            trigger.setAttribute("aria-expanded", "false");
-        }
-    }
-
-    function handleProfileClick(event) {
-        const shell = document.getElementById(SHELL_ID);
-        if (!shell) return;
-
-        const trigger =
-            event.target.closest(".hd-profile-trigger");
-
-        if (trigger) {
-            const menu = shell.querySelector(".hd-profile-menu");
-            if (!menu) return;
-
-            const open = menu.hidden;
-            menu.hidden = !open;
-
-            trigger.setAttribute(
-                "aria-expanded", String(open)
-            );
-            return;
-        }
-
-        const button =
-            event.target.closest("[data-profile-action]");
-
-        if (!button) return;
-
-        const action = button.dataset.profileAction;
-        const menu = shell.querySelector(".hd-profile-menu");
-        const profileTrigger =
-            shell.querySelector(".hd-profile-trigger");
-
-        if (menu) menu.hidden = true;
-
-        if (profileTrigger) {
-            profileTrigger.setAttribute(
-                "aria-expanded", "false"
-            );
-        }
-
-        if (action === "settings") {
-            frappe.set_route(
-                "Form", "User", frappe.session.user
-            );
-        } else if (action === "password") {
-            showChangePasswordDialog();
-        } else if (action === "reload") {
-            window.location.reload();
-        } else if (action === "logout") {
-            frappe.app.logout();
-        }
-    }
-
-    function showChangePasswordDialog() {
-        const dialog = new frappe.ui.Dialog({
-            title: "Change Password",
-            fields: [
-                {
-                    fieldname: "new_password",
-                    label: "New Password",
-                    fieldtype: "Password",
-                    reqd: 1,
-                },
-                {
-                    fieldname: "confirm_password",
-                    label: "Confirm New Password",
-                    fieldtype: "Password",
-                    reqd: 1,
-                },
-            ],
-            primary_action_label: "Change Password",
-
-            primary_action(values) {
-                if (
-                    values.new_password !==
-                    values.confirm_password
-                ) {
-                    frappe.msgprint(
-                        "The passwords do not match."
-                    );
-                    return;
-                }
-
-                if (
-                    String(values.new_password || "").length < 8
-                ) {
-                    frappe.msgprint(
-                        "Use a password with at least 8 characters."
-                    );
-                    return;
-                }
-
-                frappe.call({
-                    method:
-                        "frappe.core.doctype.user.user.update_password",
-                    args: {
-                        new_password: values.new_password,
-                    },
-                    freeze: true,
-                    freeze_message: "Updating password…",
-
-                    callback(response) {
-                        if (response.exc) return;
-
-                        dialog.hide();
-
-                        frappe.show_alert({
-                            message: "Password updated.",
-                            indicator: "green",
-                        });
-                    },
-                });
-            },
-        });
-
-        dialog.show();
-    }
-
-    function loadProfile() {
-        frappe.call({
-            method: PROFILE_API,
-
-            callback(response) {
-                profile = response.message || null;
-                renderProfile();
-            },
-
-            error(error) {
-                console.error(
-                    "[Haleel Design] Could not load profile",
-                    error
+            if (action === "settings") {
+                frappe.set_route(
+                    "Form",
+                    "User",
+                    frappe.session.user
                 );
-                renderProfile();
-            },
+            } else if (action === "password") {
+                window.location.href = "/update-password";
+            } else if (action === "reload") {
+                window.location.reload();
+            } else if (action === "logout") {
+                frappe.app.logout();
+            }
         });
-    }
 
-    function redirectFromHome() {
-        if (redirectingFromHome) return;
+        /*
+         * Clicking the Haleel brand opens the first configured
+         * navigation item instead of returning to the Desk launcher.
+         */
+        root.querySelector(".hd-brand").addEventListener(
+            "click",
+            (event) => {
+                event.preventDefault();
 
-        const route = getRoute();
-        const current = String(route[0] || "").toLowerCase();
+                const firstItem = getFirstNavigationItem();
 
-        if (current !== "home" && current !== "workspace") {
-            return;
-        }
-
-        const firstGroup = navigation.find(
-            (group) => group.items && group.items.length
+                if (firstItem?.route?.length) {
+                    defaultRouteHandled = true;
+                    closeMenus();
+                    frappe.set_route(...firstItem.route);
+                } else {
+                    frappe.set_route("desk");
+                }
+            }
         );
 
-        if (!firstGroup) return;
+        /* Close menus when clicking outside the header. */
+        document.addEventListener("click", (event) => {
+            if (!root.contains(event.target)) {
+                closeMenus();
+            }
+        });
 
-        const target = firstGroup.items[0].route;
+        /* Close menus with Escape. */
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeMenus();
+            }
+        });
 
-        if (routeKey(target) === routeKey(route)) return;
-
-        redirectingFromHome = true;
-
-        frappe.set_route(...target);
-
-        window.setTimeout(() => {
-            redirectingFromHome = false;
-        }, 500);
+        return root;
     }
 
+    /* =====================================================
+       LOAD NAVIGATION FROM PYTHON API
+       ===================================================== */
+
     function loadNavigation() {
+        if (navRequestStarted) return;
+
+        navRequestStarted = true;
+
         frappe.call({
-            method: NAV_API,
+            method: "haleel_design.api.get_navigation",
 
             callback(response) {
-                navigation = normalizeGroups(response.message);
+                groups = normalizeGroups(response?.message);
+
                 renderNavigation();
-                redirectFromHome();
+
+                // Fix the initial Desk landing after navigation loads.
+                navigateToDefaultIfNeeded();
             },
 
             error(error) {
+                navRequestStarted = false;
+
                 console.error(
                     "[Haleel Design] Navigation API failed",
                     error
                 );
 
-                const nav = document.querySelector(
-                    `#${SHELL_ID} .hd-navigation`
+                const container = document.querySelector(
+                    `#${ROOT_ID} .hd-nav-links`
                 );
 
-                if (nav) {
-                    nav.innerHTML = `
-                        <div class="hd-empty">
-                            Navigation could not load.
-                            <small>Check your Nav Access configuration.</small>
-                        </div>`;
+                if (container) {
+                    container.innerHTML =
+                        '<span class="hd-empty">Navigation failed to load.</span>';
                 }
-            },
+            }
         });
     }
 
-    function refreshNavigation() {
-        renderNavigation();
+    /* =====================================================
+       LOAD CURRENT USER PROFILE
+       ===================================================== */
 
-        const shell = document.getElementById(SHELL_ID);
+    function loadProfile() {
+        if (profileRequestStarted) return;
 
-        if (shell) closeMobileSidebar(shell);
+        profileRequestStarted = true;
 
-        redirectFromHome();
+        frappe.call({
+            method: "haleel_design.api.get_current_user_profile",
+
+            callback(response) {
+                profile = response?.message || null;
+                renderProfile();
+            },
+
+            error(error) {
+                profileRequestStarted = false;
+
+                console.error(
+                    "[Haleel Design] Profile API failed",
+                    error
+                );
+            }
+        });
     }
 
-    function start() {
-        if (!installShell()) return;
+    /* =====================================================
+       INITIALIZATION AND ROUTE CHANGES
+       ===================================================== */
 
-        if (!routeListenerAdded && frappe.router?.on) {
-            routeListenerAdded = true;
-            frappe.router.on("change", refreshNavigation);
-        }
-
-        loadNavigation();
-        loadProfile();
-    }
-
-    function init() {
+    function initialize() {
         if (
             typeof frappe === "undefined" ||
             !frappe.router
@@ -602,32 +670,100 @@
             return;
         }
 
-        if (installShell()) {
-            start();
+        const root = createNavigation();
+
+        if (!root) return;
+
+        document.body.classList.add(BODY_CLASS);
+
+        if (!routeListenerAttached && frappe.router.on) {
+            routeListenerAttached = true;
+
+            frappe.router.on("change", () => {
+                closeMenus();
+                renderNavigation();
+
+                const currentRoute = getCurrentRoute();
+
+                if (isDeskLanding(currentRoute)) {
+                    /*
+                     * Frappe may return to the Desk after login.
+                     * Allow the configured default destination to run.
+                     */
+                    defaultRouteHandled = false;
+                    navigateToDefaultIfNeeded();
+                } else {
+                    defaultRouteHandled = true;
+                }
+            });
+        }
+
+        loadNavigation();
+        loadProfile();
+
+        if (!rootObserver) {
+            const observationTarget =
+                document.querySelector(".main-section") ||
+                document.documentElement;
+
+            rootObserver = new MutationObserver(() => {
+                const existingRoot = document.getElementById(ROOT_ID);
+
+                if (!existingRoot) {
+                    createNavigation();
+                    renderNavigation();
+                    renderProfile();
+                }
+            });
+
+            rootObserver.observe(observationTarget, {
+                childList: true,
+                subtree: true
+            });
+        }
+    }
+
+    function start() {
+        if (
+            typeof frappe !== "undefined" &&
+            frappe.router &&
+            document.querySelector(".main-section")
+        ) {
+            initialize();
             return;
         }
 
-        if (observer) return;
+        if (startupObserver) return;
 
-        observer = new MutationObserver(() => {
-            if (installShell()) {
-                observer.disconnect();
-                observer = null;
-                start();
+        startupObserver = new MutationObserver(() => {
+            if (
+                typeof frappe !== "undefined" &&
+                frappe.router &&
+                document.querySelector(".main-section")
+            ) {
+                startupObserver.disconnect();
+                startupObserver = null;
+                initialize();
             }
         });
 
-        observer.observe(document.documentElement, {
+        startupObserver.observe(document.documentElement, {
             childList: true,
-            subtree: true,
+            subtree: true
         });
     }
 
+    /* =====================================================
+       START
+       ===================================================== */
+
     if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded", init, { once: true }
-        );
+        document.addEventListener("DOMContentLoaded", start, {
+            once: true
+        });
     } else {
-        init();
+        start();
     }
+
+    console.info("[Haleel Design] Initialized");
 })();

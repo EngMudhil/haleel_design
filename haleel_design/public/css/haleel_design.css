@@ -1,460 +1,770 @@
 
+/* ============================================================
+   HALEEL DESIGN — FRAPPE DESK
+   Horizontal navigation, dropdowns, profile, workspace
+   ============================================================ */
+
 :root {
-    --hd-sidebar-width: 258px;
-    --hd-sidebar-bg: #172337;
-    --hd-sidebar-border: #2a394e;
-    --hd-brand: #0f9f91;
-    --hd-text: #e7edf5;
-    --hd-muted: #96a6bb;
-    --hd-hover: #24344b;
-    --hd-active: #0f766e;
-    --hd-page-bg: #f6f8fb;
+    --hd-primary: #0f9f91;
+    --hd-primary-dark: #086c63;
+    --hd-primary-light: #e8f5f3;
+    --hd-navy: #172337;
+    --hd-navy-light: #26364d;
+    --hd-text: #1e293b;
+    --hd-muted: #718096;
+    --hd-border: #e5eaf0;
+    --hd-page: #f5f8fb;
+    --hd-radius: 14px;
+    --hd-shadow: 0 5px 18px rgba(20, 35, 55, 0.08);
 }
 
-html,
-body {
-    min-height: 100%;
+/* ============================================================
+   1. HALEEL NAVIGATION SHELL
+   ============================================================ */
+
+#hd-horizontal-nav,
+#hd-horizontal-nav *,
+#hd-workspace-home,
+#hd-workspace-home * {
+    box-sizing: border-box;
 }
 
-body.haleel-design-active {
-    background: var(--hd-page-bg);
+#hd-horizontal-nav {
+    position: relative;
+    z-index: 1035;
+    display: block;
+    width: 100%;
+    color: #eaf1f7;
+    background: var(--hd-navy);
+    border-bottom: 1px solid #293950;
+    box-shadow: 0 2px 8px rgba(17, 32, 52, 0.12);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-body.haleel-design-active .desk-sidebar,
-body.haleel-design-active .body-sidebar-container {
+body.hd-horizontal-nav-active .navbar,
+body.haleel-design-active .navbar {
     display: none !important;
 }
 
-/* Preserve the native Frappe navbar and command search. */
-body.haleel-design-active .main-section {
-    box-sizing: border-box;
-    width: calc(100% - var(--hd-sidebar-width));
-    min-height: 100vh;
-    margin-left: var(--hd-sidebar-width) !important;
-    padding-top: 0 !important;
-}
-
-body.haleel-design-active .page-container,
-body.haleel-design-active .page-body,
-body.haleel-design-active .layout-main-section-wrapper,
-body.haleel-design-active .layout-main-section {
-    box-sizing: border-box;
-    min-width: 0;
-    max-width: 100%;
-}
-
-body.haleel-design-active
-.layout-side-section:has(.desk-sidebar) {
-    display: none !important;
-}
-
-/* Sidebar */
-#haleel-design-shell,
-#haleel-design-shell * {
-    box-sizing: border-box;
-}
-
-#haleel-design-shell .hd-sidebar {
-    position: fixed;
-    z-index: 1045;
-    inset: 0 auto 0 0;
-    display: flex;
-    flex-direction: column;
-    width: var(--hd-sidebar-width);
-    overflow-x: hidden;
-    overflow-y: auto;
-    color: var(--hd-text);
-    background: var(--hd-sidebar-bg);
-    border-right: 1px solid var(--hd-sidebar-border);
-    font-family: inherit;
-    scrollbar-width: thin;
-    scrollbar-color: #40516a var(--hd-sidebar-bg);
-}
-
-#haleel-design-shell .hd-brand {
+#hd-horizontal-nav .hd-nav-main {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-height: 76px;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--hd-sidebar-border);
+    gap: 16px;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 20px;
+    overflow: visible;
 }
 
-#haleel-design-shell .hd-brand-mark {
-    display: grid;
-    flex: 0 0 39px;
-    width: 39px;
-    height: 39px;
-    place-items: center;
-    border-radius: 11px;
-    color: #fff;
-    background: var(--hd-brand);
-    font-size: 20px;
-    font-weight: 750;
-}
+/* Brand */
 
-#haleel-design-shell .hd-brand-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-}
-
-#haleel-design-shell .hd-brand-copy strong {
+#hd-horizontal-nav .hd-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
     color: #fff;
     font-size: 17px;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-#haleel-design-shell .hd-brand-copy small {
-    color: var(--hd-muted);
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-}
-
-#haleel-design-shell .hd-sidebar-caption {
-    padding: 23px 20px 10px;
-    color: #8799b0;
-    font-size: 10px;
     font-weight: 750;
-    letter-spacing: 1.5px;
-}
-
-#haleel-design-shell .hd-navigation {
-    flex: 1;
-    padding: 0 11px 15px;
-}
-
-#haleel-design-shell .hd-nav-group {
-    margin-bottom: 8px;
-}
-
-#haleel-design-shell .hd-nav-group-title {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-    padding: 10px 11px;
-    border: 0;
-    border-radius: 7px;
-    color: #c4d0df;
-    background: transparent;
-    text-align: left;
-    font-size: 11px;
-    font-weight: 750;
-    cursor: pointer;
-}
-
-#haleel-design-shell .hd-nav-group-title:hover {
-    color: #fff;
-    background: var(--hd-hover);
-}
-
-#haleel-design-shell .hd-chevron {
-    color: #92a3b9;
-    font-size: 15px;
-    transition: transform 0.15s ease;
-}
-
-#haleel-design-shell
-.hd-nav-group-title[aria-expanded="false"]
-.hd-chevron {
-    transform: rotate(-90deg);
-}
-
-#haleel-design-shell .hd-nav-group-items {
-    padding: 3px 0 5px;
-}
-
-#haleel-design-shell .hd-nav-group-items[hidden],
-#haleel-design-shell .hd-profile-menu[hidden] {
-    display: none !important;
-}
-
-#haleel-design-shell .hd-nav-item {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    margin: 2px 0;
-    padding: 10px 12px 10px 17px;
-    border: 0;
-    border-radius: 7px;
-    color: #b7c5d7;
-    background: transparent;
-    text-align: left;
-    font-size: 12px;
-    line-height: 1.4;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-}
-
-#haleel-design-shell .hd-nav-item:hover {
-    color: #fff;
-    background: var(--hd-hover);
-}
-
-#haleel-design-shell .hd-nav-item.is-active {
-    color: #fff;
-    background: var(--hd-active);
-    font-weight: 650;
-}
-
-#haleel-design-shell .hd-nav-item-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-decoration: none;
     white-space: nowrap;
 }
 
-#haleel-design-shell .hd-empty,
-#haleel-design-shell .hd-loading {
-    padding: 13px 10px;
-    color: var(--hd-muted);
-    font-size: 12px;
-    line-height: 1.6;
+#hd-horizontal-nav .hd-brand-mark {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--hd-primary);
+    color: #fff;
+    font-size: 20px;
+    font-weight: 800;
 }
 
-#haleel-design-shell .hd-empty small {
-    display: block;
-    margin-top: 5px;
-    color: #7f91a8;
-    font-size: 11px;
+#hd-horizontal-nav .hd-brand-name {
+    color: #fff;
+    font-size: 21px;
+    font-weight: 750;
 }
 
-/* Sidebar footer and custom profile menu */
-#haleel-design-shell .hd-sidebar-bottom {
-    margin-top: auto;
-    border-top: 1px solid var(--hd-sidebar-border);
-}
+/* ============================================================
+   2. NAVIGATION GROUPS
+   ============================================================ */
 
-#haleel-design-shell .hd-sidebar-footer {
+#hd-horizontal-nav .hd-nav-links {
     display: flex;
+    flex: 1 1 auto;
     align-items: center;
-    gap: 9px;
-    padding: 13px 20px 10px;
-    color: var(--hd-muted);
-    font-size: 11px;
-}
-
-#haleel-design-shell .hd-status-dot {
-    flex: 0 0 7px;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #20c997;
-}
-
-#haleel-design-shell .hd-profile {
-    position: relative;
-    padding: 6px 10px 12px;
-}
-
-#haleel-design-shell .hd-profile-trigger {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
+    gap: 4px;
     min-width: 0;
+    overflow: visible;
+}
+
+#hd-horizontal-nav .hd-nav-links::-webkit-scrollbar {
+    display: none;
+}
+
+#hd-horizontal-nav .hd-empty {
     padding: 10px;
+    color: #d4deea;
+    font-size: 12px;
+}
+
+#hd-horizontal-nav .hd-dropdown {
+    position: relative;
+    flex-shrink: 0;
+}
+
+#hd-horizontal-nav .hd-dropdown-trigger,
+#hd-horizontal-nav .hd-profile-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 12px;
     border: 1px solid transparent;
     border-radius: 9px;
-    color: #fff;
     background: transparent;
+    color: #d4deea;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 550;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+#hd-horizontal-nav .hd-dropdown-trigger:hover,
+#hd-horizontal-nav .hd-dropdown.is-open > .hd-dropdown-trigger,
+#hd-horizontal-nav .hd-profile-trigger:hover,
+#hd-horizontal-nav .hd-profile-dropdown.is-open > .hd-profile-trigger {
+    background: var(--hd-navy-light);
+    color: #fff;
+}
+
+#hd-horizontal-nav .hd-dropdown.is-current > .hd-dropdown-trigger {
+    background: var(--hd-navy-light);
+    color: #fff;
+}
+
+#hd-horizontal-nav .hd-dropdown-trigger:focus-visible,
+#hd-horizontal-nav .hd-profile-trigger:focus-visible,
+#hd-horizontal-nav .hd-nav-item:focus-visible {
+    outline: 2px solid #76e0d1;
+    outline-offset: 2px;
+}
+
+#hd-horizontal-nav .hd-nav-group-icon {
+    display: inline-flex;
+    align-items: center;
+}
+
+/* The arrow comes from the JavaScript markup.
+   Do not add another arrow using ::after. */
+
+#hd-horizontal-nav .hd-dropdown-chevron {
+    display: inline-block;
+    margin-left: 2px;
+    color: #aebdd0;
+    font-size: 16px;
+    line-height: 1;
+    transition: transform 150ms ease;
+}
+
+#hd-horizontal-nav .hd-dropdown.is-open > .hd-dropdown-trigger .hd-dropdown-chevron,
+#hd-horizontal-nav .hd-profile-dropdown.is-open > .hd-profile-trigger .hd-dropdown-chevron {
+    transform: rotate(180deg);
+}
+
+/* ============================================================
+   3. DROPDOWN MENUS
+   ============================================================ */
+
+#hd-horizontal-nav .hd-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 10000;
+    display: none;
+    min-width: 210px;
+    max-width: min(320px, calc(100vw - 24px));
+    max-height: 65vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid var(--hd-border);
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgba(20, 35, 55, 0.18);
+    color: var(--hd-text);
+}
+
+/* Click-controlled visibility */
+#hd-horizontal-nav .hd-dropdown.is-open > .hd-dropdown-menu:not([hidden]) {
+    display: block;
+}
+
+#hd-horizontal-nav .hd-dropdown-menu[hidden] {
+    display: none !important;
+}
+
+/* Navigation item buttons */
+
+#hd-horizontal-nav .hd-dropdown-menu button {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #263449;
+    font: inherit;
+    font-size: 13px;
     text-align: left;
     cursor: pointer;
 }
 
-#haleel-design-shell .hd-profile-trigger:hover,
-#haleel-design-shell
-.hd-profile-trigger[aria-expanded="true"] {
-    border-color: #34445b;
-    background: #223148;
+#hd-horizontal-nav .hd-dropdown-menu button:hover,
+#hd-horizontal-nav .hd-dropdown-menu button.is-active {
+    background: var(--hd-primary-light);
+    color: var(--hd-primary-dark);
 }
 
-#haleel-design-shell .hd-avatar {
+/* ============================================================
+   4. USER PROFILE MENU
+   ============================================================ */
+
+#hd-horizontal-nav .hd-nav-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+#hd-horizontal-nav .hd-profile-trigger {
+    max-width: 240px;
+    border-color: #34445a;
+}
+
+#hd-horizontal-nav .hd-avatar {
     display: grid;
-    flex: 0 0 35px;
-    width: 35px;
-    height: 35px;
-    overflow: hidden;
     place-items: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
     border-radius: 50%;
+    background: var(--hd-primary);
     color: #fff;
-    background: #31506b;
     font-size: 12px;
     font-weight: 750;
 }
 
-#haleel-design-shell .hd-avatar-image {
+#hd-horizontal-nav .hd-avatar img {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-#haleel-design-shell .hd-avatar-initials {
-    display: grid;
-    width: 100%;
-    height: 100%;
-    place-items: center;
-}
-
-#haleel-design-shell .hd-profile-copy {
-    display: flex;
-    flex: 1;
-    flex-direction: column;
-    gap: 4px;
-    min-width: 0;
-}
-
-#haleel-design-shell .hd-profile-copy strong {
+#hd-horizontal-nav .hd-profile-name {
+    max-width: 150px;
     overflow: hidden;
-    color: #fff;
-    font-size: 11px;
-    font-weight: 650;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-#haleel-design-shell .hd-profile-copy small {
-    overflow: hidden;
-    color: #9eafc3;
-    font-size: 10px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+#hd-horizontal-nav .hd-profile-menu {
+    right: 0;
+    left: auto;
+    min-width: 210px;
 }
 
-#haleel-design-shell .hd-profile-chevron {
-    color: #9eafc3;
-    font-size: 17px;
-}
-
-#haleel-design-shell .hd-profile-menu {
-    position: absolute;
-    z-index: 1055;
-    right: 10px;
-    bottom: calc(100% - 4px);
-    left: 10px;
-    padding: 7px;
-    border: 1px solid #34445b;
-    border-radius: 10px;
-    background: #202f44;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
-}
-
-#haleel-design-shell .hd-profile-menu-heading {
-    padding: 9px 10px;
-    color: #91a4bc;
-    font-size: 10px;
-    font-weight: 750;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-#haleel-design-shell .hd-profile-menu button {
-    display: block;
-    width: 100%;
+#hd-horizontal-nav .hd-profile-email {
     padding: 10px;
-    border: 0;
-    border-radius: 6px;
-    color: #e5edf7;
+    overflow-wrap: anywhere;
+    border-bottom: 1px solid #edf0f4;
+    color: var(--hd-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   5. MOBILE MENU BUTTON
+   ============================================================ */
+
+#hd-horizontal-nav .hd-mobile-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 4px 8px;
+    border: 1px solid #34445a;
+    border-radius: 8px;
     background: transparent;
-    text-align: left;
-    font-size: 12px;
+    color: #fff;
+    font-size: 22px;
     cursor: pointer;
 }
 
-#haleel-design-shell .hd-profile-menu button:hover {
-    color: #fff;
-    background: #304158;
-}
+/* ============================================================
+   6. HIDE NATIVE FRAPPE DESK NAVIGATION
+   Based on the previous Haleel stylesheet
+   ============================================================ */
 
-#haleel-design-shell .hd-profile-divider {
-    height: 1px;
-    margin: 5px 4px;
-    background: #39495e;
-}
-
-#haleel-design-shell
-.hd-profile-menu button.hd-logout-action {
-    color: #ffb4b4;
-}
-
-#haleel-design-shell
-.hd-profile-menu button.hd-logout-action:hover {
-    background: #482f3a;
-}
-
-/* Hide native profile and notification controls, not the navbar. */
-body.haleel-design-active .navbar .dropdown-help,
-body.haleel-design-active .navbar .nav-item.dropdown-notifications,
-body.haleel-design-active .navbar .nav-item.dropdown-user,
-body.haleel-design-active .navbar .avatar,
-body.haleel-design-active .navbar .user-profile {
+/* Hide the native Desk sidebar under either active body class */
+body.hd-horizontal-nav-active .desk-sidebar,
+body.hd-horizontal-nav-active .body-sidebar-container,
+body.hd-horizontal-nav-active .layout-side-section:has(.desk-sidebar),
+body.haleel-design-active .desk-sidebar,
+body.haleel-design-active .body-sidebar-container,
+body.haleel-design-active .layout-side-section:has(.desk-sidebar) {
     display: none !important;
 }
 
-#haleel-design-shell .hd-mobile-toggle,
-#haleel-design-shell .hd-mobile-backdrop {
-    display: none;
+/* Hide the native Desk dock / left icon rail */
+body.hd-horizontal-nav-active #desk-dock,
+body.haleel-design-active #desk-dock {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
 }
 
-/* Mobile */
-@media (max-width: 767px) {
-    body.haleel-design-active .main-section {
+/* Hide other known native Desk sidebar containers */
+body.hd-horizontal-nav-active .desk-sidebar-menu,
+body.hd-horizontal-nav-active .sidebar-toggle-btn,
+body.haleel-design-active .desk-sidebar-menu,
+body.haleel-design-active .sidebar-toggle-btn {
+    display: none !important;
+}
+
+/* Remove the old shell's left offsets */
+body.hd-horizontal-nav-active .main-section,
+body.haleel-design-active .main-section,
+body.hd-horizontal-nav-active .layout-main-section-wrapper,
+body.haleel-design-active .layout-main-section-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+}
+
+/* Keep the actual page content visible */
+body.hd-horizontal-nav-active .layout-main-section,
+body.haleel-design-active .layout-main-section {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Do not globally hide layout-side-section here.
+   The targeted selectors above avoid hiding unrelated form sections. */
+
+/* ============================================================
+   7. WORKSPACE HOME
+   ============================================================ */
+
+#hd-workspace-home {
+    width: 100%;
+    min-height: 60vh;
+    padding: 30px 32px 22px;
+    background: var(--hd-page);
+    color: var(--hd-text);
+}
+
+#hd-workspace-home[hidden] {
+    display: none !important;
+}
+
+body.hd-workspace-active .layout-main-section,
+body.hd-workspace-active .layout-main-section-wrapper {
+    background: var(--hd-page);
+}
+
+body.hd-workspace-active .desktop-wrapper,
+body.hd-workspace-active .desktop-navbar,
+body.hd-workspace-active .desktop-container,
+body.hd-workspace-active #desk-dock {
+    display: none !important;
+}
+
+/* Workspace welcome banner */
+
+#hd-workspace-home .hd-workspace-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 205px;
+    overflow: hidden;
+    padding: 36px 40px;
+    border-radius: 18px;
+    background:
+        radial-gradient(circle at 88% 20%, rgba(61, 192, 174, .24), transparent 30%),
+        linear-gradient(120deg, #172337, #203b50 65%, #086c63);
+    color: #fff;
+    box-shadow: var(--hd-shadow);
+}
+
+#hd-workspace-home .hd-workspace-hero-copy {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+}
+
+#hd-workspace-home .hd-eyebrow {
+    margin: 0 0 10px;
+    color: var(--hd-primary);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1.6px;
+}
+
+#hd-workspace-home .hd-workspace-hero .hd-eyebrow {
+    color: #76e0d1;
+}
+
+#hd-workspace-home .hd-workspace-hero h1 {
+    margin: 0 0 12px;
+    color: #fff;
+    font-size: clamp(25px, 3vw, 36px);
+    font-weight: 750;
+    letter-spacing: -.8px;
+    line-height: 1.2;
+}
+
+#hd-workspace-home .hd-workspace-hero p:not(.hd-eyebrow) {
+    max-width: 580px;
+    margin: 0;
+    color: #d5e3ed;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+#hd-workspace-home .hd-workspace-hero-mark {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 110px;
+    height: 110px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+    font-size: 58px;
+    font-weight: 800;
+}
+
+/* Workspace group headings */
+
+#hd-workspace-home .hd-workspace-group {
+    margin-top: 32px;
+}
+
+#hd-workspace-home .hd-workspace-group-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 15px;
+}
+
+#hd-workspace-home .hd-workspace-group-heading .hd-eyebrow {
+    margin-bottom: 5px;
+}
+
+#hd-workspace-home .hd-workspace-group-heading h2 {
+    margin: 0;
+    color: var(--hd-text);
+    font-size: 21px;
+    font-weight: 750;
+}
+
+#hd-workspace-home .hd-workspace-count {
+    padding: 7px 11px;
+    border: 1px solid #dce8e8;
+    border-radius: 999px;
+    background: #fff;
+    color: #627481;
+    font-size: 11px;
+}
+
+/* Workspace cards */
+
+#hd-workspace-home .hd-workspace-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+#hd-workspace-home .hd-workspace-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 0;
+    min-height: 108px;
+    padding: 20px;
+    border: 1px solid var(--hd-border);
+    border-radius: var(--hd-radius);
+    background: #fff;
+    color: var(--hd-text);
+    text-align: left;
+    cursor: pointer;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+#hd-workspace-home .hd-workspace-card:hover {
+    transform: translateY(-3px);
+    border-color: #9bd7d0;
+    box-shadow: 0 10px 26px rgba(20, 80, 75, .09);
+}
+
+#hd-workspace-home .hd-workspace-card:focus-visible {
+    outline: 3px solid rgba(15, 159, 145, .3);
+    outline-offset: 3px;
+}
+
+#hd-workspace-home .hd-workspace-card-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 47px;
+    height: 47px;
+    border: 1px solid #d4eeea;
+    border-radius: 13px;
+    background: var(--hd-primary-light);
+    color: var(--hd-primary-dark);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+#hd-workspace-home .hd-workspace-card-copy {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+#hd-workspace-home .hd-workspace-card-copy strong {
+    overflow-wrap: anywhere;
+    color: #263449;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+#hd-workspace-home .hd-workspace-card-copy small {
+    color: var(--hd-muted);
+    font-size: 11px;
+}
+
+#hd-workspace-home .hd-workspace-arrow {
+    align-self: flex-start;
+    color: #92a3b3;
+}
+
+#hd-workspace-home .hd-workspace-card:hover .hd-workspace-arrow {
+    color: var(--hd-primary);
+}
+
+/* Empty workspace state */
+
+#hd-workspace-home .hd-workspace-empty {
+    max-width: 540px;
+    margin: 40px auto;
+    padding: 35px 25px;
+    border: 1px solid var(--hd-border);
+    border-radius: var(--hd-radius);
+    background: #fff;
+    text-align: center;
+}
+
+#hd-workspace-home .hd-workspace-empty-mark {
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 18px;
+    border-radius: 16px;
+    background: var(--hd-primary-light);
+    color: var(--hd-primary-dark);
+    font-size: 25px;
+    font-weight: 800;
+}
+
+#hd-workspace-home .hd-workspace-empty h2 {
+    margin: 0 0 10px;
+    font-size: 19px;
+}
+
+#hd-workspace-home .hd-workspace-empty p {
+    margin: 0;
+    color: var(--hd-muted);
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+#hd-workspace-home .hd-workspace-footer {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 36px;
+    padding-top: 20px;
+    border-top: 1px solid #e5ebf0;
+    color: #8998a7;
+    font-size: 11px;
+}
+
+#hd-workspace-home .hd-workspace-footer span {
+    color: var(--hd-primary);
+}
+
+/* ============================================================
+   8. RESPONSIVE LAYOUT
+   ============================================================ */
+
+@media (max-width: 1100px) {
+    #hd-horizontal-nav .hd-nav-main {
+        gap: 9px;
+        padding: 8px 12px;
+    }
+
+    #hd-horizontal-nav .hd-brand-name {
+        font-size: 19px;
+    }
+
+    #hd-horizontal-nav .hd-dropdown-trigger {
+        padding: 0 8px;
+    }
+
+    #hd-workspace-home {
+        padding: 25px 22px;
+    }
+
+    #hd-workspace-home .hd-workspace-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 700px) {
+    #hd-horizontal-nav .hd-nav-main {
+        min-height: 54px;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 8px 12px;
+    }
+
+    #hd-horizontal-nav .hd-mobile-toggle {
+        display: inline-flex;
+    }
+
+    #hd-horizontal-nav .hd-nav-links {
+        display: none;
+        order: 5;
+        flex: 0 0 100%;
+        flex-direction: column;
+        align-items: stretch;
         width: 100%;
-        margin-left: 0 !important;
+        overflow: visible;
     }
 
-    #haleel-design-shell .hd-sidebar {
-        width: 265px;
-        transform: translateX(-100%);
-        transition: transform 0.2s ease;
+    #hd-horizontal-nav.hd-mobile-open .hd-nav-links {
+        display: flex;
     }
 
-    #haleel-design-shell.hd-sidebar-open .hd-sidebar {
-        transform: translateX(0);
+    #hd-horizontal-nav .hd-dropdown {
+        width: 100%;
     }
 
-    #haleel-design-shell .hd-mobile-toggle {
-        position: fixed;
-        z-index: 1047;
-        top: 12px;
-        left: 12px;
-        display: block;
-        width: 40px;
-        height: 40px;
-        border: 1px solid #d9e0e8;
-        border-radius: 8px;
-        color: #263449;
-        background: #fff;
-        font-size: 21px;
-        cursor: pointer;
-        box-shadow: 0 2px 8px rgba(20, 35, 55, 0.12);
+    #hd-horizontal-nav .hd-dropdown-trigger {
+        justify-content: flex-start;
+        width: 100%;
+        text-align: left;
     }
 
-    #haleel-design-shell .hd-mobile-backdrop {
-        position: fixed;
-        z-index: 1043;
-        inset: 0;
-        display: block;
-        border: 0;
-        background: rgba(8, 18, 32, 0.42);
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
+    #hd-horizontal-nav .hd-dropdown-trigger .hd-dropdown-chevron {
+        margin-left: auto;
     }
 
-    #haleel-design-shell.hd-sidebar-open
-    .hd-mobile-backdrop {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
+    #hd-horizontal-nav .hd-dropdown-menu {
+        position: static;
+        width: 100%;
+        max-width: none;
+        max-height: 240px;
+        margin: 3px 0 7px;
+        border-color: #34445a;
+        background: #202f44;
+        box-shadow: none;
     }
 
-    #haleel-design-shell.hd-sidebar-open
-    .hd-mobile-toggle {
-        left: 277px;
+    #hd-horizontal-nav .hd-dropdown-menu button {
+        color: #eaf1f7;
+    }
+
+    #hd-horizontal-nav .hd-dropdown-menu button:hover,
+    #hd-horizontal-nav .hd-dropdown-menu button.is-active {
+        background: #0f766e;
+        color: #fff;
+    }
+
+    #hd-horizontal-nav .hd-profile-name {
+        max-width: 100px;
+    }
+
+    #hd-horizontal-nav .hd-profile-trigger {
+        padding: 4px;
+    }
+
+    #hd-workspace-home {
+        padding: 18px 14px;
+    }
+
+    #hd-workspace-home .hd-workspace-hero {
+        min-height: 175px;
+        padding: 25px 22px;
+    }
+
+    #hd-workspace-home .hd-workspace-hero h1 {
+        font-size: 25px;
+    }
+
+    #hd-workspace-home .hd-workspace-hero-mark {
+        display: none;
+    }
+
+    #hd-workspace-home .hd-workspace-group {
+        margin-top: 26px;
+    }
+
+    #hd-workspace-home .hd-workspace-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 11px;
+    }
+
+    #hd-workspace-home .hd-workspace-card {
+        min-height: 90px;
+        padding: 16px;
+    }
+}
+
+/* ============================================================
+   9. ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    #hd-horizontal-nav *,
+    #hd-workspace-home * {
+        scroll-behavior: auto !important;
+        transition: none !important;
+        animation: none !important;
     }
 }
