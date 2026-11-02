@@ -327,42 +327,13 @@
        DEFAULT ROUTE AFTER LOGIN
        ===================================================== */
 
-    function navigateToDefaultIfNeeded() {
-        if (redirectInProgress || defaultRouteHandled) return;
-        if (!groups.length) return;
+    
+function navigateToDefaultIfNeeded() {
+    // Do not redirect automatically.
+    // Let Frappe open its normal pages, forms, and lists.
+    return;
+}
 
-        // Never redirect a user away from an actual page they opened.
-        if (!isDeskLanding()) {
-            defaultRouteHandled = true;
-            return;
-        }
-
-        const firstItem = getFirstNavigationItem();
-
-        if (!firstItem || !firstItem.route?.length) {
-            // No valid configured destination: leave the Desk alone.
-            return;
-        }
-
-        // Set these before set_route to prevent routing loops.
-        defaultRouteHandled = true;
-        redirectInProgress = true;
-
-        try {
-            frappe.set_route(...firstItem.route);
-        } catch (error) {
-            defaultRouteHandled = false;
-
-            console.error(
-                "[Haleel Design] Default navigation failed",
-                error
-            );
-        } finally {
-            window.setTimeout(() => {
-                redirectInProgress = false;
-            }, 800);
-        }
-    }
 
     /* =====================================================
        CREATE HALEEL HEADER

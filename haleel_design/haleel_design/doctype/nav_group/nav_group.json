@@ -35,7 +35,7 @@
    "options": "Nav Item"
   },
   {
-   "default": "0",
+   "default": "1",
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Is Active"
@@ -44,7 +44,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-13 14:27:10.330505",
+ "modified": "2026-11-01 13:41:19.995656",
  "modified_by": "Administrator",
  "module": "Haleel Design",
  "name": "Nav Group",
