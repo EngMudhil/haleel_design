@@ -1,0 +1,762 @@
+
+(() => {
+    "use strict";
+
+    // Prevent the script from initializing twice.
+    if (window.__haleelDesignV3Initialized) return;
+    window.__haleelDesignV3Initialized = true;
+
+    const ROOT_ID = "hd-horizontal-nav";
+    const BODY_CLASS = "hd-horizontal-nav-active";
+
+    let groups = [];
+    let profile = null;
+
+    let navRequestStarted = false;
+    let profileRequestStarted = false;
+    let routeListenerAttached = false;
+    let rootObserver = null;
+    let startupObserver = null;
+    let defaultRouteHandled = false;
+    let redirectInProgress = false;
+
+    /* =====================================================
+       UTILITIES
+       ===================================================== */
+
+    function escapeHTML(value) {
+        return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#39;"
+        })[character]);
+    }
+
+    function getCurrentRoute() {
+        if (
+            typeof frappe === "undefined" ||
+            typeof frappe.get_route !== "function"
+        ) {
+            return [];
+        }
+
+        return (frappe.get_route() || []).map(String);
+    }
+
+    function isDeskLanding(route = getCurrentRoute()) {
+        const first = String(route[0] || "").trim().toLowerCase();
+
+        return (
+            !first ||
+            ["desk", "workspace", "workspaces"].includes(first)
+        );
+    }
+
+    function isLauncherRoute(route = getCurrentRoute()) {
+        return String(route[0] || "").trim().toLowerCase() === "haleel-launcher";
+    }
+
+    function normalizeRoute(item) {
+        if (Array.isArray(item.route) && item.route.length) {
+            return item.route.map(String);
+        }
+
+        const type = String(
+            item.type || item.item_type || ""
+        ).trim().toLowerCase();
+
+        const destination = String(
+            item.destination || ""
+        ).trim();
+
+        if (!destination) return null;
+
+        if (type === "doctype") {
+            return ["List", destination];
+        }
+
+        if (type === "report") {
+            return ["query-report", destination];
+        }
+
+        if (type === "page") {
+            return [destination];
+        }
+
+        return null;
+    }
+
+    function normalizeGroups(data) {
+        if (!Array.isArray(data)) return [];
+
+        return data.map((group) => {
+            const items = (Array.isArray(group.items) ? group.items : [])
+                .filter((item) => {
+                    return (
+                        item &&
+                        item.is_visible !== false &&
+                        item.is_visible !== 0 &&
+                        item.is_visible !== "0"
+                    );
+                })
+                .map((item) => ({
+                    name: String(item.name || ""),
+                    label: String(
+                        item.label ||
+                        item.name1 ||
+                        item.destination ||
+                        item.name ||
+                        "Untitled"
+                    ),
+                    type: String(
+                        item.type || item.item_type || ""
+                    ).toLowerCase(),
+                    destination: String(item.destination || ""),
+                    route: normalizeRoute(item)
+                }))
+                .filter((item) => {
+                    return (
+                        Array.isArray(item.route) &&
+                        item.route.length > 0 &&
+                        item.label
+                    );
+                });
+
+            return {
+                name: String(group.name || ""),
+                title: String(
+                    group.title ||
+                    group.group_title ||
+                    group.name ||
+                    "Navigation"
+                ),
+                icon: String(group.icon || group.group_icon || ""),
+                items
+            };
+        });
+    }
+
+    function getFirstNavigationItem() {
+        for (const group of groups) {
+            if (group.items && group.items.length) {
+                return group.items[0];
+            }
+        }
+
+        return null;
+    }
+
+    /* =====================================================
+       DROPDOWN MANAGEMENT
+       ===================================================== */
+
+    function setMenuOpen(dropdown, open) {
+        if (!dropdown) return;
+
+        const trigger = dropdown.querySelector(
+            ":scope > .hd-dropdown-trigger, " +
+            ":scope > .hd-profile-trigger"
+        );
+
+        const menu = dropdown.querySelector(
+            ":scope > .hd-dropdown-menu"
+        );
+
+        dropdown.classList.toggle("is-open", Boolean(open));
+
+        if (trigger) {
+            trigger.setAttribute(
+                "aria-expanded",
+                String(Boolean(open))
+            );
+        }
+
+        if (menu) {
+            menu.hidden = !open;
+        }
+    }
+
+    function closeMenus(except = null) {
+        const root = document.getElementById(ROOT_ID);
+        if (!root) return;
+
+        root.querySelectorAll(".hd-dropdown").forEach((dropdown) => {
+            if (dropdown !== except) {
+                setMenuOpen(dropdown, false);
+            }
+        });
+
+        if (!except) {
+            root.classList.remove("hd-mobile-open");
+
+            const mobileButton = root.querySelector(
+                ".hd-mobile-toggle"
+            );
+
+            if (mobileButton) {
+                mobileButton.setAttribute("aria-expanded", "false");
+            }
+        }
+    }
+
+    /* =====================================================
+       NAVIGATION RENDERING
+       ===================================================== */
+
+    function renderNavigation() {
+        const container = document.querySelector(
+            `#${ROOT_ID} .hd-nav-links`
+        );
+
+        if (!container) return;
+
+        const navigationGroups = groups.filter(
+            (group) => group.items.length > 0
+        );
+
+        if (!navigationGroups.length) {
+            container.innerHTML =
+                '<span class="hd-empty">No navigation items configured.</span>';
+            return;
+        }
+
+        const currentRoute = getCurrentRoute();
+
+        container.innerHTML = navigationGroups.map((group, index) => {
+            const groupIsCurrent = group.items.some((item) => {
+                return JSON.stringify(item.route) ===
+                    JSON.stringify(currentRoute);
+            });
+
+            return `
+                <div
+                    class="hd-dropdown${groupIsCurrent ? " is-current" : ""}"
+                    data-hd-group="${index}"
+                >
+                    <button
+                        type="button"
+                        class="hd-dropdown-trigger"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                    >
+                        ${
+                            group.icon
+                                ? `<span class="hd-nav-group-icon">${escapeHTML(group.icon)}</span>`
+                                : ""
+                        }
+                        <span class="hd-group-label">
+                            ${escapeHTML(group.title)}
+                        </span>
+                        <span
+                            class="hd-dropdown-chevron"
+                            aria-hidden="true"
+                        >⌄</span>
+                    </button>
+
+                    <div
+                        class="hd-dropdown-menu"
+                        role="menu"
+                        hidden
+                    >
+                        ${group.items.map((item) => `
+                            <button
+                                type="button"
+                                class="hd-nav-item"
+                                role="menuitem"
+                                data-hd-route="${escapeHTML(JSON.stringify(item.route))}"
+                            >
+                                ${escapeHTML(item.label)}
+                            </button>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
+        }).join("");
+
+        container.querySelectorAll(".hd-dropdown").forEach((dropdown) => {
+            setMenuOpen(dropdown, false);
+        });
+    }
+
+    /* =====================================================
+       PROFILE RENDERING
+       ===================================================== */
+
+    function renderProfile() {
+        const root = document.getElementById(ROOT_ID);
+        if (!root) return;
+
+        const name =
+            profile?.full_name ||
+            frappe.session?.user_fullname ||
+            frappe.session?.user ||
+            "User";
+
+        const image = profile?.image || "";
+
+        const initials = name
+            .trim()
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part[0] || "")
+            .join("")
+            .toUpperCase();
+
+        const avatar = image
+            ? `<img src="${escapeHTML(image)}" alt="">`
+            : escapeHTML(initials || "U");
+
+        const trigger = root.querySelector(".hd-profile-trigger");
+
+        if (trigger) {
+            trigger.innerHTML = `
+                <span class="hd-avatar">${avatar}</span>
+                <span class="hd-profile-name">${escapeHTML(name)}</span>
+                <span
+                    class="hd-dropdown-chevron"
+                    aria-hidden="true"
+                >⌄</span>
+            `;
+        }
+
+        const email = root.querySelector(".hd-profile-email");
+
+        if (email) {
+            email.textContent =
+                profile?.email ||
+                frappe.session?.user ||
+                "";
+        }
+    }
+
+    /* =====================================================
+       DEFAULT ROUTE AFTER LOGIN
+       ===================================================== */
+
+
+function navigateToDefaultIfNeeded() {
+    // Do not redirect automatically.
+    // Let Frappe open its normal pages, forms, and lists.
+    return;
+}
+
+
+    /* =====================================================
+       CREATE HALEEL HEADER
+       ===================================================== */
+
+    function createNavigation() {
+        if (isLauncherRoute()) {
+            document.getElementById(ROOT_ID)?.remove();
+            document.body.classList.remove(BODY_CLASS);
+            document.body.classList.add("hd-launcher-active");
+            return null;
+        }
+
+        document.body.classList.remove("hd-launcher-active");
+
+        let root = document.getElementById(ROOT_ID);
+
+        if (root) {
+            document.body.classList.add(BODY_CLASS);
+            return root;
+        }
+
+        const mount = document.querySelector(".main-section");
+
+        if (!mount) return null;
+
+        root = document.createElement("header");
+        root.id = ROOT_ID;
+
+        root.innerHTML = `
+            <div class="hd-nav-main">
+                <button
+                    type="button"
+                    class="hd-mobile-toggle"
+                    aria-label="Toggle navigation"
+                    aria-expanded="false"
+                >☰</button>
+
+                <a
+                    class="hd-brand"
+                    href="/app"
+                    aria-label="Haleel"
+                >
+                    <span class="hd-brand-mark">H</span>
+                    <span class="hd-brand-name">Haleel</span>
+                </a>
+
+                <nav
+                    class="hd-nav-links"
+                    aria-label="Haleel navigation"
+                >
+                    <span class="hd-empty">Loading navigation…</span>
+                </nav>
+
+                <div class="hd-nav-actions">
+                    <div class="hd-dropdown hd-profile-dropdown">
+                        <button
+                            type="button"
+                            class="hd-profile-trigger"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                        >
+                            <span class="hd-avatar">U</span>
+                            <span class="hd-profile-name">User</span>
+                            <span
+                                class="hd-dropdown-chevron"
+                                aria-hidden="true"
+                            >⌄</span>
+                        </button>
+
+                        <div
+                            class="hd-dropdown-menu hd-profile-menu"
+                            role="menu"
+                            hidden
+                        >
+                            <div class="hd-profile-email">
+                                Loading profile…
+                            </div>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="settings"
+                            >My Settings</button>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="password"
+                            >Change Password</button>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="reload"
+                            >Reload Desk</button>
+
+                            <button
+                                type="button"
+                                role="menuitem"
+                                data-hd-action="logout"
+                            >Log out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        mount.insertBefore(root, mount.firstChild);
+        document.body.classList.add(BODY_CLASS);
+
+        /* One delegated click listener for all menu items. */
+        root.addEventListener("click", (event) => {
+            const target = event.target instanceof Element
+                ? event.target
+                : null;
+
+            if (!target) return;
+
+            /* Mobile menu */
+            const mobileButton = target.closest(".hd-mobile-toggle");
+
+            if (mobileButton) {
+                const open = root.classList.toggle("hd-mobile-open");
+
+                mobileButton.setAttribute(
+                    "aria-expanded",
+                    String(open)
+                );
+
+                return;
+            }
+
+            /* Dropdown triggers */
+            const trigger = target.closest(
+                ".hd-dropdown-trigger, .hd-profile-trigger"
+            );
+
+            if (trigger) {
+                const dropdown = trigger.closest(".hd-dropdown");
+                if (!dropdown) return;
+
+                const wasOpen = dropdown.classList.contains("is-open");
+
+                closeMenus(dropdown);
+                setMenuOpen(dropdown, !wasOpen);
+
+                return;
+            }
+
+            /* Navigation destinations */
+            const routeButton = target.closest("[data-hd-route]");
+
+            if (routeButton) {
+                try {
+                    const route = JSON.parse(
+                        routeButton.dataset.hdRoute || "null"
+                    );
+
+                    if (Array.isArray(route) && route.length) {
+                        defaultRouteHandled = true;
+                        closeMenus();
+                        frappe.set_route(...route);
+                    }
+                } catch (error) {
+                    console.error(
+                        "[Haleel Design] Invalid navigation route",
+                        error
+                    );
+                }
+
+                return;
+            }
+
+            /* Profile actions */
+            const actionButton = target.closest("[data-hd-action]");
+            const action = actionButton?.dataset.hdAction;
+
+            if (!action) return;
+
+            closeMenus();
+
+            if (action === "settings") {
+                frappe.set_route(
+                    "Form",
+                    "User",
+                    frappe.session.user
+                );
+            } else if (action === "password") {
+                window.location.href = "/update-password";
+            } else if (action === "reload") {
+                window.location.reload();
+            } else if (action === "logout") {
+                frappe.app.logout();
+            }
+        });
+
+        /*
+         * The Haleel brand always returns to the application launcher.
+         */
+        root.querySelector(".hd-brand").addEventListener(
+            "click",
+            (event) => {
+                event.preventDefault();
+                closeMenus();
+                frappe.set_route("haleel-launcher");
+            }
+        );
+
+        /* Close menus when clicking outside the header. */
+        document.addEventListener("click", (event) => {
+            if (!root.contains(event.target)) {
+                closeMenus();
+            }
+        });
+
+        /* Close menus with Escape. */
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                closeMenus();
+            }
+        });
+
+        return root;
+    }
+
+    /* =====================================================
+       LOAD NAVIGATION FROM PYTHON API
+       ===================================================== */
+
+    function loadNavigation() {
+        if (navRequestStarted) return;
+
+        navRequestStarted = true;
+
+        frappe.call({
+            method: "haleel_design.api.get_navigation",
+
+            callback(response) {
+                groups = normalizeGroups(response?.message);
+
+                renderNavigation();
+
+                // Fix the initial Desk landing after navigation loads.
+                navigateToDefaultIfNeeded();
+            },
+
+            error(error) {
+                navRequestStarted = false;
+
+                console.error(
+                    "[Haleel Design] Navigation API failed",
+                    error
+                );
+
+                const container = document.querySelector(
+                    `#${ROOT_ID} .hd-nav-links`
+                );
+
+                if (container) {
+                    container.innerHTML =
+                        '<span class="hd-empty">Navigation failed to load.</span>';
+                }
+            }
+        });
+    }
+
+    /* =====================================================
+       LOAD CURRENT USER PROFILE
+       ===================================================== */
+
+    function loadProfile() {
+        if (profileRequestStarted) return;
+
+        profileRequestStarted = true;
+
+        frappe.call({
+            method: "haleel_design.api.get_current_user_profile",
+
+            callback(response) {
+                profile = response?.message || null;
+                renderProfile();
+            },
+
+            error(error) {
+                profileRequestStarted = false;
+
+                console.error(
+                    "[Haleel Design] Profile API failed",
+                    error
+                );
+            }
+        });
+    }
+
+    /* =====================================================
+       INITIALIZATION AND ROUTE CHANGES
+       ===================================================== */
+
+    function initialize() {
+        if (
+            typeof frappe === "undefined" ||
+            !frappe.router
+        ) {
+            return;
+        }
+
+        if (!routeListenerAttached && frappe.router.on) {
+            routeListenerAttached = true;
+
+            frappe.router.on("change", () => {
+                closeMenus();
+
+                const currentRoute = getCurrentRoute();
+
+                if (isLauncherRoute(currentRoute)) {
+                    document.getElementById(ROOT_ID)?.remove();
+                    document.body.classList.remove(BODY_CLASS);
+                    document.body.classList.add("hd-launcher-active");
+                    return;
+                }
+
+                document.body.classList.remove("hd-launcher-active");
+
+                createNavigation();
+                renderNavigation();
+                renderProfile();
+
+                if (isDeskLanding(currentRoute)) {
+                    defaultRouteHandled = false;
+                    navigateToDefaultIfNeeded();
+                } else {
+                    defaultRouteHandled = true;
+                }
+            });
+        }
+
+        if (isLauncherRoute()) {
+            document.getElementById(ROOT_ID)?.remove();
+            document.body.classList.remove(BODY_CLASS);
+            document.body.classList.add("hd-launcher-active");
+        } else {
+            document.body.classList.remove("hd-launcher-active");
+            createNavigation();
+            document.body.classList.add(BODY_CLASS);
+        }
+
+        loadNavigation();
+        loadProfile();
+
+        if (!rootObserver) {
+            const observationTarget =
+                document.querySelector(".main-section") ||
+                document.documentElement;
+
+            rootObserver = new MutationObserver(() => {
+                if (isLauncherRoute()) return;
+
+                const existingRoot = document.getElementById(ROOT_ID);
+
+                if (!existingRoot) {
+                    createNavigation();
+                    renderNavigation();
+                    renderProfile();
+                }
+            });
+
+            rootObserver.observe(observationTarget, {
+                childList: true,
+                subtree: true
+            });
+        }
+    }
+
+    function start() {
+        if (
+            typeof frappe !== "undefined" &&
+            frappe.router &&
+            document.querySelector(".main-section")
+        ) {
+            initialize();
+            return;
+        }
+
+        if (startupObserver) return;
+
+        startupObserver = new MutationObserver(() => {
+            if (
+                typeof frappe !== "undefined" &&
+                frappe.router &&
+                document.querySelector(".main-section")
+            ) {
+                startupObserver.disconnect();
+                startupObserver = null;
+                initialize();
+            }
+        });
+
+        startupObserver.observe(document.documentElement, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    /* =====================================================
+       START
+       ===================================================== */
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", start, {
+            once: true
+        });
+    } else {
+        start();
+    }
+
+    console.info("[Haleel Design] Initialized");
+})();

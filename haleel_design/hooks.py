@@ -26,10 +26,17 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 app_include_css = [
+    "/assets/haleel_design/vendor/phosphor/regular/style.css",
+    "/assets/haleel_design/vendor/phosphor/fill/style.css",
     "/assets/haleel_design/css/tailwind.bundle.css",
     "/assets/haleel_design/css/haleel_design.css",
+    "/assets/haleel_design/css/haleel_launcher_home.css",
 ]
-app_include_js = "/assets/haleel_design/js/haleel_design.js"
+app_include_js = [
+    "/assets/haleel_design/js/haleel_icons.js",
+    "/assets/haleel_design/js/haleel_design.js",
+    "/assets/haleel_design/js/haleel_launcher_home.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/haleel_design/css/haleel_design.css"

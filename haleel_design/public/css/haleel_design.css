@@ -768,3 +768,171 @@ body.hd-workspace-active #desk-dock {
         animation: none !important;
     }
 }
+
+
+/* Haleel Phosphor icon sizing */
+.hd-card-icon > .ph,
+.hd-card-icon > .ph-fill {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.hd-nav-group-icon > .ph,
+.hd-nav-group-icon > .ph-fill {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+
+/* ============================================================
+   HALEEL DIRECT NAVIGATION LINKS AND RESPONSIVE MORE MENU
+   ============================================================ */
+
+#hd-horizontal-nav .hd-nav-links {
+    min-width: 0;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+}
+
+#hd-horizontal-nav .hd-nav-direct {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    max-width: 220px;
+    padding: 0 12px;
+    overflow: hidden;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: #d4deea;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 550;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+#hd-horizontal-nav .hd-nav-direct:hover,
+#hd-horizontal-nav .hd-nav-direct.is-active {
+    background: var(--hd-navy-light);
+    color: #fff;
+}
+
+#hd-horizontal-nav .hd-nav-direct:focus-visible {
+    outline: 2px solid #76e0d1;
+    outline-offset: 2px;
+}
+
+#hd-horizontal-nav .hd-more-dropdown[hidden] {
+    display: none !important;
+}
+
+#hd-horizontal-nav .hd-more-dropdown,
+#hd-horizontal-nav .hd-reports-dropdown {
+    flex: 0 0 auto;
+}
+
+#hd-horizontal-nav .hd-nav-direct[style*="display: none"] {
+    display: none !important;
+}
+
+@media (max-width: 700px) {
+    #hd-horizontal-nav .hd-nav-links {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    #hd-horizontal-nav .hd-nav-direct {
+        flex: 0 0 auto;
+    }
+}
+
+
+/* HALEEL: HIDE NATIVE FRAPPE DESK SIDEBAR */
+
+body.hd-custom-shell .desk-sidebar,
+body.hd-custom-shell .layout-side-section,
+body.hd-custom-shell .standard-sidebar {
+    display: none !important;
+}
+
+body.hd-custom-shell .layout-main-section-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+}
+
+body.hd-custom-shell .layout-main-section {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Keep the Haleel interface independent of the native sidebar. */
+body.hd-custom-shell {
+    --hd-native-sidebar-hidden: 1;
+}
+
+/* HALEEL FIX: HIDE FRAPPE SIDEBAR ON LAUNCHER AND DESK */
+
+body.hd-launcher-active .desk-sidebar,
+body.hd-launcher-active .layout-side-section,
+body.hd-launcher-active .standard-sidebar,
+body.hd-launcher-active .app-sidebar,
+body.hd-launcher-active .sidebar,
+body.hd-custom-shell .desk-sidebar,
+body.hd-custom-shell .layout-side-section,
+body.hd-custom-shell .standard-sidebar,
+body.hd-custom-shell .app-sidebar,
+body.hd-custom-shell .sidebar {
+    display: none !important;
+}
+
+/* Remove the space reserved for the hidden sidebar */
+body.hd-launcher-active .layout-main-section-wrapper,
+body.hd-custom-shell .layout-main-section-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+}
+
+body.hd-launcher-active .layout-main-section,
+body.hd-custom-shell .layout-main-section {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+
+/* HALEEL: MATCH RASIIN NATIVE SIDEBAR BEHAVIOR */
+
+body.hd-launcher-active .body-sidebar-container,
+body.hd-horizontal-nav-active .body-sidebar-container {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    flex: 0 0 0 !important;
+}
+
+body.hd-launcher-active .body-sidebar-container *,
+body.hd-horizontal-nav-active .body-sidebar-container * {
+    pointer-events: none !important;
+}
+
+body.hd-launcher-active .main-section,
+body.hd-horizontal-nav-active .main-section {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+}
+/* Hide application navigation on global settings pages.
+   Keep the Haleel header, logo and profile dropdown visible. */
+
+#hd-horizontal-nav.hd-global-page .hd-nav-links {
+    display: none !important;
+}

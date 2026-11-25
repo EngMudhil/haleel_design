@@ -1,0 +1,13 @@
+{
+ "doctype": "Page",
+ "name": "haleel-launcher",
+ "page_name": "haleel-launcher",
+ "module": "Haleel Design",
+ "title": "Haleel Applications",
+ "standard": "Yes",
+ "roles": [
+  {
+   "role": "All"
+  }
+ ]
+}

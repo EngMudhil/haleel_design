@@ -1,25 +1,26 @@
 {
  "actions": [],
+ "allow_bulk_edit": 1,
  "allow_rename": 1,
- "creation": "2026-10-13 14:00:05.219638",
+ "creation": "2026-11-17 19:18:09.959845",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "section_break_s9cn",
-  "nav_item"
+  "section_break_aevq",
+  "warehouse"
  ],
  "fields": [
   {
-   "fieldname": "section_break_s9cn",
+   "fieldname": "section_break_aevq",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "nav_item",
+   "fieldname": "warehouse",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Nav Item",
-   "options": "Nav Item",
+   "label": "Warehouse",
+   "options": "Warehouse",
    "reqd": 1
   }
  ],
@@ -27,15 +28,15 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-13 14:01:12.826310",
+ "modified": "2026-11-17 19:18:36.322100",
  "modified_by": "Administrator",
  "module": "Haleel Design",
- "name": "Nav Access Nav Item",
+ "name": "Pricing Warehouse",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
  "rows_threshold_for_grid_search": 20,
- "sort_field": "modified",
+ "sort_field": "creation",
  "sort_order": "DESC",
  "states": []
 }

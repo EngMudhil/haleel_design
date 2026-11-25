@@ -1,4 +1,3 @@
-
 frappe.ui.form.on("Nav Access", {
     refresh(frm) {
         if (frm.is_new()) return;
@@ -9,6 +8,7 @@ frappe.ui.form.on("Nav Access", {
         );
     },
 });
+
 
 async function open_navigation_dialog(frm) {
     const dialog = new frappe.ui.Dialog({
@@ -46,7 +46,7 @@ async function open_navigation_dialog(frm) {
                             "allowed_items",
                             "options",
                             items.map(item => ({
-                                label: item.name,
+                                label: item.name1,
                                 value: item.name,
                             }))
                         );
@@ -68,36 +68,45 @@ async function open_navigation_dialog(frm) {
                 label: __("Items This User Can See"),
                 fieldtype: "MultiCheck",
                 options: [],
+                description: __(
+                    "Select specific items, or leave everything unchecked to grant all visible items in this group."
+                ),
             },
         ],
         primary_action_label: __("Save Selection"),
+
         primary_action: async function (values) {
             const group_name = values.nav_group;
             const selected_items = values.allowed_items || [];
 
-            // Remove previous rows for this group.
-            // Keep rows belonging to other groups.
-            const existing_rows = [...(frm.doc.workspaces || [])];
+            // Preserve assignments belonging to other groups.
+            const other_rows = (frm.doc.workspaces || [])
+                .filter(row => row.nav_group !== group_name)
+                .map(row => ({
+                    nav_group: row.nav_group,
+                    nav_item: row.nav_item,
+                }));
 
-            existing_rows.forEach(row => {
-                if (row.nav_group === group_name) {
-                    frappe.model.clear_table(frm.doc, "workspaces");
-                    existing_rows
-                        .filter(item => item.nav_group !== group_name)
-                        .forEach(item => {
-                            const new_row = frm.add_child("workspaces");
-                            new_row.nav_group = item.nav_group;
-                            new_row.nav_item = item.nav_item;
-                        });
-                }
+            frm.clear_table("workspaces");
+
+            other_rows.forEach(item => {
+                const row = frm.add_child("workspaces");
+                row.nav_group = item.nav_group;
+                row.nav_item = item.nav_item;
             });
 
-            // Add one row for each selected item.
-            selected_items.forEach(item_name => {
+            if (selected_items.length === 0) {
+                // Blank item means all visible items in this group.
                 const row = frm.add_child("workspaces");
                 row.nav_group = group_name;
-                row.nav_item = item_name;
-            });
+                row.nav_item = "";
+            } else {
+                selected_items.forEach(item_name => {
+                    const row = frm.add_child("workspaces");
+                    row.nav_group = group_name;
+                    row.nav_item = item_name;
+                });
+            }
 
             frm.refresh_field("workspaces");
 
@@ -120,7 +129,7 @@ async function open_navigation_dialog(frm) {
 
     dialog.show();
 
-    // Restore the previously selected group when possible.
+    // Restore a previously configured group when possible.
     const first_group = (frm.doc.workspaces || []).find(
         row => row.nav_group
     );
@@ -129,6 +138,7 @@ async function open_navigation_dialog(frm) {
         dialog.set_value("nav_group", first_group.nav_group);
     }
 }
+
 
 function get_saved_items(frm, group_name) {
     return (frm.doc.workspaces || [])

@@ -4,7 +4,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from haleel_design.api import get_navigation
+from haleel_design.api.api import get_navigation
 
 
 def _delete_if_exists(doctype, name):

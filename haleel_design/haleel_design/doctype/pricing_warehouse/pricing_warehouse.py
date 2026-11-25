@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class NavAccessNavItem(Document):
+class PricingWarehouse(Document):
 	pass
